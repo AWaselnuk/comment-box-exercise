@@ -1,0 +1,91 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>React Comment Box Tutorial</title>
+    <meta name="description" content="React comment box tutorial">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Place link and script tags -->
+    <script src="http://fb.me/react-0.12.2.js"></script>
+    <script src="http://fb.me/JSXTransformer-0.12.2.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+    <!-- Showdown converts markdown into raw HTML -->
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/showdown/0.3.1/showdown.min.js"></script>
+  </head>
+
+  <body>
+    <div id="content"></div>
+
+    <!-- declare the type to use the JSX transformer -->
+    <script type="text/jsx">
+
+      // Comment Box component
+      var CommentBox = React.createClass({
+        // render method returns a tree of React components
+        // JSX transformer allows you to use XML like syntax instead of
+        // React functions
+        render: function() {
+          return (
+            <div className="commentBox">
+              <h1>Comments</h1>
+              <CommentList />
+              <CommentForm />
+            </div>
+          );
+          // Without JSX
+          // return (
+          //   React.createElement('div', {className: "commentBox"},
+          //     "Hello, world! I am a CommentBox."
+          //   )
+          // );
+        }
+      });
+
+      // Comment List component
+      var CommentList = React.createClass({
+        render: function() {
+          return (
+            <div className="commentList">
+              <Comment author="Pete Hunt">This is a comment.</Comment>
+              <Comment author="Jordan Walke">This is *another* comment</Comment>
+            </div>
+          );
+        }
+      });
+
+      // Comment Form component
+      var CommentForm = React.createClass({
+        render: function() {
+          return (
+            <div className="commentForm">
+              Hello I am the comment form.
+            </div>
+          );
+        }
+      });
+
+      // Comment component
+      var converter = new Showdown.converter();
+      var Comment = React.createClass({
+        render: function() {
+          var rawMarkup = converter.makeHtml(this.props.children.toString());
+          console.log(rawMarkup);
+          return (
+            <div className="comment">
+              <h2 className="commentAuthor">{ this.props.author }</h2>
+              <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
+            </div>
+          );
+        }
+      });
+
+      // Instantiate component, start the framework,
+      // and inject markup into given DOM element
+      React.render(<CommentBox />, document.getElementById('content'));
+
+    </script>
+  </body>
+</html>
