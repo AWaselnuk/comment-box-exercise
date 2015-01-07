@@ -24,6 +24,51 @@
 
       // Comment Box component
       var CommentBox = React.createClass({
+        // props are immutable, passed by the parent, and owned by the parent
+        // state is mutable and this.state is private to a component
+        // here we set some initial state for the component
+        // getInitialState state executes exactly once in the component lifecycle
+        getInitialState: function() {
+          return {data: []};
+        },
+        loadCommentsFromServer: function() {
+          console.log('Polling server for comments ...');
+          $.ajax({
+            url: this.props.url,
+            dataType: 'json',
+            success: function(data) {
+              this.setState({data: data});
+            }.bind(this),
+            failure: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+            }.bind(this)
+          });
+        },
+        handleCommentSubmit: function(comment) {
+          console.log('Submitting comment ...');
+          // Optimistically add the comment before sending to server
+          var comments = this.state.data;
+          var newComments = comments.concat([comment]);
+          this.setState({ data: newComments });
+          $.ajax({
+            url: this.props.url,
+            dataType: 'json',
+            type: 'POST',
+            data: comment,
+            success: function(data) {
+              this.setState({data: data});
+            }.bind(this),
+            failure: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+            }.bind(this)
+          });
+        },
+        // This method is called automatically when a component is rendered
+        // this.setState() is what causes the dynamic UI updates
+        componentDidMount: function() {
+          this.loadCommentsFromServer();
+          setInterval(this.loadCommentsFromServer, this.props.pollInterval);
+        },
         // render method returns a tree of React components
         // JSX transformer allows you to use XML like syntax instead of
         // React functions
@@ -31,8 +76,8 @@
           return (
             <div className="commentBox">
               <h1>Comments</h1>
-              <CommentList />
-              <CommentForm />
+              <CommentList data={ this.state.data } />
+              <CommentForm onCommentSubmit={ this.handleCommentSubmit }/>
             </div>
           );
           // Without JSX
@@ -47,22 +92,43 @@
       // Comment List component
       var CommentList = React.createClass({
         render: function() {
+          console.log(this.props.data);
+          var commentNodes = this.props.data.map(function (comment) {
+            return (
+              <Comment author={ comment.author }>
+                { comment.text }
+              </Comment>
+            );
+          });
           return (
             <div className="commentList">
-              <Comment author="Pete Hunt">This is a comment.</Comment>
-              <Comment author="Jordan Walke">This is *another* comment</Comment>
+              { commentNodes }
             </div>
-          );
+          )
         }
       });
 
       // Comment Form component
       var CommentForm = React.createClass({
+        handleSubmit: function(e) {
+          e.preventDefault();
+          var author = this.refs.author.getDOMNode().value.trim();
+          var text = this.refs.text.getDOMNode().value.trim();
+          if (!text || !author) {
+            return;
+          }
+          this.props.onCommentSubmit({ author: author, text: text });
+          this.refs.author.getDOMNode().value = '';
+          this.refs.text.getDOMNode().value = '';
+          return;
+        },
         render: function() {
           return (
-            <div className="commentForm">
-              Hello I am the comment form.
-            </div>
+            <form className="commentForm" onSubmit={ this.handleSubmit }>
+              <input type="text" placeholder="Your name" ref="author" />
+              <input type="text" placeholder="Say something ..." ref="text" />
+              <input type="submit" value="Post Comment" />
+            </form>
           );
         }
       });
@@ -72,7 +138,6 @@
       var Comment = React.createClass({
         render: function() {
           var rawMarkup = converter.makeHtml(this.props.children.toString());
-          console.log(rawMarkup);
           return (
             <div className="comment">
               <h2 className="commentAuthor">{ this.props.author }</h2>
@@ -84,7 +149,7 @@
 
       // Instantiate component, start the framework,
       // and inject markup into given DOM element
-      React.render(<CommentBox />, document.getElementById('content'));
+      React.render(<CommentBox url="comments.json" pollInterval={2000} />, document.getElementById('content'));
 
     </script>
   </body>
